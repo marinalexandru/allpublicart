@@ -188,6 +188,31 @@ contract(
                 twoPercent.should.be.equal(beneficiary);
             });
 
+            it('audit: should not burn 2% if twoPercent is not set', async () => {
+                await timer(dayInSecs * 42);
+                const ethValue = 100e18;
+                const wallet = await apaCrowdsale.wallet();
+                const walletBalanceBefore = web3.eth
+                    .getBalance(wallet)
+                    .toNumber();
+                console.log("walletBalanceBefore: "+walletBalanceBefore);
+
+                await apaCrowdsale.buyTokens(buyer, {
+                    value: ethValue,
+                    from: buyer
+                });
+                const walletBalanceAfter = web3.eth
+                    .getBalance(wallet)
+                    .toNumber();
+                console.log("walletBalanceAfter:  "+walletBalanceAfter);
+                const newBalance = walletBalanceBefore + ethValue;
+                console.log("newBalance:          "+ newBalance);
+                newBalance.should.be.closeTo(
+                    walletBalanceAfter,
+                    1e18
+                );
+            });
+
             it('twoPercent beneficiary is not able to be set more than once', async () => {
                 timer(20);
                 await apaCrowdsale.setTwoPercent(beneficiary, { from: owner });
