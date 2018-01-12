@@ -165,6 +165,8 @@ contract(
             balance.should.be.bignumber.equal(expectedTeamAndAdvisorsTokens);
         });
 
+   
+
         describe('forward funds', () => {
             it('does not allow non-owners to set twoPercent beneficiary', async () => {
                 timer(20);
@@ -551,6 +553,54 @@ contract(
                 buyerPurchaseInfo[1].should.be.bignumber.equal(0); // 0% bonus
                 buyerPurchaseInfo[2].should.be.bignumber.equal(value); // contributed with 1e18 wei
             });
+
+            it('audit: the crowdsale should be available to the normal buyer even if TOTAL_SUPPLY_CROWDSALE has been reached before start of crowdsale', async function() {
+                const TOTAL_SUPPLY_CROWDSALE = await apaCrowdsale.TOTAL_SUPPLY_CROWDSALE();
+                const rate = 1;
+    
+                await timer(dayInSecs * 42);
+                
+                await apaCrowdsale.mintTokenForPrivateInvestors(
+                    buyer,
+                    rate,
+                    0,
+                    TOTAL_SUPPLY_CROWDSALE
+                );
+                await apaCrowdsale.mintTokenForPrivateInvestors(
+                    buyer,
+                    rate,
+                    0,
+                    TOTAL_SUPPLY_CROWDSALE
+                );
+                const allTokens = await apaToken.totalSupply();
+                allTokens.should.be.bignumber.equal(2*TOTAL_SUPPLY_CROWDSALE);
+                var crashed = false; 
+                try{
+                    await apaCrowdsale.buyTokens(buyer2, { value: 100 });
+                }catch(e){
+                    crashed = true;
+                }
+
+                assert.equal(crashed, false, "this might be intentional")
+                await timer(endTime + 30);
+
+    
+            });
+    
+            it('audit: the buyers should not exceed TOTAL_SUPPLY_CROWDSALE', async function() {
+                const TOTAL_SUPPLY_CROWDSALE = await apaCrowdsale.TOTAL_SUPPLY_CROWDSALE();
+                // for one wei you should receive the max amount of tokens (TOTAL_SUPPLY_CROWDSALE)
+                await apaCrowdsale.setFinalRate(TOTAL_SUPPLY_CROWDSALE);
+                await timer(dayInSecs * 42);            
+                await apaCrowdsale.buyTokens(buyer2, { value: 1 });
+                await apaCrowdsale.buyTokens(buyer2, { value: 1 });
+                await timer(endTime + 30); // after the crowdsale
+                await apaCrowdsale.sendTokensToPurchasers();
+                const allTokens = await apaToken.totalSupply();
+                allTokens.should.be.bignumber.equal(TOTAL_SUPPLY_CROWDSALE);
+                
+            });
+
 
             it('receives 0% bonus after third crowdsale bonus period', async () => {
                 timer(dayInSecs * 42);
