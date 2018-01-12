@@ -189,6 +189,28 @@ contract(
             balance.should.be.bignumber.equal(expectedCompanyTokens);
         });
 
+
+        //after fixing this same checks should be applied to:
+        //  AllPublicArtCrowdsale.mintTokenForPrivateInvestors()
+        //  AllPublicArtCrowdsale.mintTokensFor()
+        //  LockTokenAllocation.addLockTokenAllocation()
+        //  WhitelistRegistry.setBuyerRate()
+        //  WhitelistRegistry.setPreferentialRate()
+        it('audit: should not let mintTokensFor() function execute with 0x address parameter', async function() {
+            await timer(dayInSecs * 42);
+            await timer(endTime + 30);
+            var crashed = false; 
+            try{
+             await apaCrowdsale.mintTokensFor(
+                    0,
+                    expectedCompanyTokens
+                );
+            }catch(e){
+                crashed = true;
+            }
+            assert.equal(crashed,true,'should have creashed because of the 0 input');
+        });
+
         it('assigns tokens to team and advisors', async function() {
             await timer(dayInSecs * 42);
 
