@@ -101,6 +101,45 @@ contract(
             apaToken = AllPublicArtToken.at(await apaCrowdsale.token());
         });
 
+
+        it('audit: should not let 0x or 0 addresses to be inputed in the constructor', async () => {
+            startTime = getBlockNow() + 20; // crowdsale starts in 20 seconds
+            preSaleEnds = startTime + dayInSecs * 10; // 10 days
+            firstBonusSalesEnds = startTime + dayInSecs * 20; // 20 days
+            secondBonusSalesEnds = startTime + dayInSecs * 30; // 30 days
+            thirdBonusSalesEnds = startTime + dayInSecs * 40; // 40 days
+            endTime = startTime + dayInSecs * 60; // 60 days
+            var crashedCrowdsale = false;
+            var crashedBonus = false;
+            try{
+                await AllPublicArtCrowdsale.new(
+                    startTime,
+                    endTime,
+                    rate,
+                    0,
+                    0,
+                    wallet
+                );
+            }catch(e){
+                crashedCrowdsale = true;
+            }
+            var crashedBonus = false;
+            try{
+                await APABonus.new(
+                    startTime,
+                    preSaleEnds,
+                    firstBonusSalesEnds,
+                    secondBonusSalesEnds,
+                    thirdBonusSalesEnds,
+                    0
+                );
+            }catch(e){
+                crashedBonus = true;
+            }
+            assert.equal(crashedBonus,true, "APABonus constructor should have crashed for 0x address input");            
+            assert.equal(crashedCrowdsale,true,"AllPublicArtCrowdsale constructor should have crashed for 0x address input");
+        });
+
         it('has a normal crowdsale rate', async () => {
             const crowdsaleRate = await apaCrowdsale.rate();
             crowdsaleRate.toNumber().should.equal(rate.toNumber());
@@ -164,8 +203,6 @@ contract(
 
             balance.should.be.bignumber.equal(expectedTeamAndAdvisorsTokens);
         });
-
-   
 
         describe('forward funds', () => {
             it('does not allow non-owners to set twoPercent beneficiary', async () => {
@@ -580,11 +617,8 @@ contract(
                 }catch(e){
                     crashed = true;
                 }
-
                 assert.equal(crashed, false, "this might be intentional")
                 await timer(endTime + 30);
-
-    
             });
     
             it('audit: the buyers should not exceed TOTAL_SUPPLY_CROWDSALE', async function() {
